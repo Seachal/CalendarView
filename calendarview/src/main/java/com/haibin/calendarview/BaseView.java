@@ -257,7 +257,14 @@ public abstract class BaseView extends View implements View.OnClickListener, Vie
 
         this.mSelectedPaint.setStyle(Paint.Style.FILL);
         this.mSelectedPaint.setColor(delegate.getSelectedThemeColor());
-        setItemHeight(delegate.getCalendarItemHeight());
+
+        updateItemHeight();
+    }
+
+    void updateItemHeight() {
+        this.mItemHeight = mDelegate.getCalendarItemHeight();
+        Paint.FontMetrics metrics = mCurMonthTextPaint.getFontMetrics();
+        mTextBaseLine = mItemHeight / 2 - metrics.descent + (metrics.bottom - metrics.top) / 2;
     }
 
 
@@ -269,28 +276,6 @@ public abstract class BaseView extends View implements View.OnClickListener, Vie
             a.setScheme("");
             a.setSchemeColor(0);
             a.setSchemes(null);
-        }
-    }
-
-
-    /**
-     * 添加事件标记，来自List
-     */
-    final void addSchemesFromList() {
-        if (mDelegate.mSchemeDate == null || mDelegate.mSchemeDate.size() == 0) {
-            return;
-        }
-        for (Calendar a : mItems) {//添加操作
-            if (mDelegate.mSchemeDate.contains(a)) {
-                Calendar d = mDelegate.mSchemeDate.get(mDelegate.mSchemeDate.indexOf(a));
-                a.setScheme(TextUtils.isEmpty(d.getScheme()) ? mDelegate.getSchemeText() : d.getScheme());
-                a.setSchemeColor(d.getSchemeColor());
-                a.setSchemes(d.getSchemes());
-            } else {
-                a.setScheme("");
-                a.setSchemeColor(0);
-                a.setSchemes(null);
-            }
         }
     }
 
@@ -354,19 +339,6 @@ public abstract class BaseView extends View implements View.OnClickListener, Vie
         // TODO: 2017/11/16
     }
 
-
-    /**
-     * 设置高度
-     *
-     * @param itemHeight itemHeight
-     */
-    private void setItemHeight(int itemHeight) {
-        this.mItemHeight = itemHeight;
-        Paint.FontMetrics metrics = mCurMonthTextPaint.getFontMetrics();
-        mTextBaseLine = mItemHeight / 2 - metrics.descent + (metrics.bottom - metrics.top) / 2;
-    }
-
-
     /**
      * 是否是选中的
      *
@@ -381,26 +353,44 @@ public abstract class BaseView extends View implements View.OnClickListener, Vie
      * 更新事件
      */
     final void update() {
-        if (mDelegate.getSchemeType() == CalendarViewDelegate.SCHEME_TYPE_LIST) {
-            if (mDelegate.mSchemeDate == null || mDelegate.mSchemeDate.size() == 0) {//清空操作
-                removeSchemes();
-                invalidate();
-                return;
-            }
-            addSchemesFromList();
-        } else {
-            if (mDelegate.mSchemeDatesMap == null || mDelegate.mSchemeDatesMap.size() == 0) {//清空操作
-                removeSchemes();
-                invalidate();
-                return;
-            }
-            addSchemesFromMap();
+        if (mDelegate.mSchemeDatesMap == null || mDelegate.mSchemeDatesMap.size() == 0) {//清空操作
+            removeSchemes();
+            invalidate();
+            return;
         }
-
+        addSchemesFromMap();
         invalidate();
     }
 
+
+    /**
+     * 是否拦截日期，此设置续设置mCalendarInterceptListener
+     *
+     * @param calendar calendar
+     * @return 是否拦截日期
+     */
+    protected final boolean onCalendarIntercept(Calendar calendar) {
+        return mDelegate.mCalendarInterceptListener != null &&
+                mDelegate.mCalendarInterceptListener.onCalendarIntercept(calendar);
+    }
+
+    /**
+     * 是否在日期范围内
+     *
+     * @param calendar calendar
+     * @return 是否在日期范围内
+     */
+    protected final boolean isInRange(Calendar calendar) {
+        return mDelegate != null && CalendarUtil.isCalendarInRange(calendar, mDelegate);
+    }
+
+    /**
+     * 跟新当前日期
+     */
     abstract void updateCurrentDate();
 
+    /**
+     * 销毁
+     */
     protected abstract void onDestroy();
 }

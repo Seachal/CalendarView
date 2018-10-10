@@ -15,7 +15,6 @@
  */
 package com.haibin.calendarview;
 
-
 import android.text.TextUtils;
 
 import java.io.Serializable;
@@ -119,7 +118,7 @@ public final class Calendar implements Serializable {
     /**
      * 获取完整的农历日期
      */
-    private Calendar lunarCakendar;
+    private Calendar lunarCalendar;
 
 
     public int getYear() {
@@ -252,12 +251,12 @@ public final class Calendar implements Serializable {
         this.week = week;
     }
 
-    public Calendar getLunarCakendar() {
-        return lunarCakendar;
+    public Calendar getLunarCalendar() {
+        return lunarCalendar;
     }
 
-    public void setLunarCakendar(Calendar lunarCakendar) {
-        this.lunarCakendar = lunarCakendar;
+    public void setLunarCalendar(Calendar lunarCakendar) {
+        this.lunarCalendar = lunarCakendar;
     }
 
     public String getSolarTerm() {
@@ -311,12 +310,59 @@ public final class Calendar implements Serializable {
         return false;
     }
 
+    /**
+     * 是否是相同月份
+     *
+     * @param calendar 日期
+     * @return 是否是相同月份
+     */
     public boolean isSameMonth(Calendar calendar) {
         return year == calendar.getYear() && month == calendar.getMonth();
     }
 
+    /**
+     * 比较日期
+     *
+     * @param calendar 日期
+     * @return -1 0 1
+     */
     public int compareTo(Calendar calendar) {
+        if (calendar == null) {
+            return 1;
+        }
         return toString().compareTo(calendar.toString());
+    }
+
+    /**
+     * 运算差距多少天
+     *
+     * @param calendar calendar
+     * @return 运算差距多少天
+     */
+    public final int differ(Calendar calendar) {
+        return CalendarUtil.differ(this, calendar);
+    }
+
+    /**
+     * 日期是否可用
+     *
+     * @return 日期是否可用
+     */
+    public boolean isAvailable() {
+        return year > 0 & month > 0 & day > 0;
+    }
+
+    /**
+     * 获取当前日历对应时间戳
+     *
+     * @return getTimeInMillis
+     */
+    public long getTimeInMillis() {
+        java.util.Calendar calendar = java.util.Calendar.getInstance();
+        calendar.set(java.util.Calendar.YEAR, year);
+        calendar.set(java.util.Calendar.MONTH, month - 1);
+        calendar.set(java.util.Calendar.DAY_OF_MONTH, day);
+        return calendar.getTimeInMillis();
     }
 
     @Override
@@ -331,6 +377,22 @@ public final class Calendar implements Serializable {
     @Override
     public String toString() {
         return year + "" + (month < 10 ? "0" + month : month) + "" + (day < 10 ? "0" + day : day);
+    }
+
+
+    final void mergeScheme(Calendar calendar, String defaultScheme) {
+        if (calendar == null)
+            return;
+        setScheme(TextUtils.isEmpty(calendar.getScheme()) ?
+                defaultScheme : calendar.getScheme());
+        setSchemeColor(calendar.getSchemeColor());
+        setSchemes(calendar.getSchemes());
+    }
+
+    final void clearScheme() {
+        setScheme("");
+        setSchemeColor(0);
+        setSchemes(null);
     }
 
     /**

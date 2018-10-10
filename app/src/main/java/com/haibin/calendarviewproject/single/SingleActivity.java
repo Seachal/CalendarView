@@ -4,10 +4,10 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.support.v7.widget.LinearLayoutManager;
-import android.util.Log;
 import android.view.View;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.haibin.calendarview.Calendar;
 import com.haibin.calendarview.CalendarLayout;
@@ -22,15 +22,13 @@ import com.haibin.calendarviewproject.index.IndexActivity;
 import com.haibin.calendarviewproject.meizu.MeiZuActivity;
 import com.haibin.calendarviewproject.simple.SimpleActivity;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class SingleActivity extends BaseActivity implements
-        CalendarView.OnDateSelectedListener,
+        CalendarView.OnCalendarSelectListener,
         CalendarView.OnYearChangeListener,
-        CalendarView.OnMonthChangeListener,
+        CalendarView.OnCalendarInterceptListener,
         View.OnClickListener {
 
     TextView mTextMonthDay;
@@ -71,6 +69,9 @@ public class SingleActivity extends BaseActivity implements
         mTextMonthDay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (mYear == 0) {
+                    mYear = mCalendarView.getCurYear();
+                }
                 if (!mCalendarLayout.isExpand()) {
                     mCalendarView.showYearSelectLayout(mYear);
                     return;
@@ -88,9 +89,12 @@ public class SingleActivity extends BaseActivity implements
             }
         });
         mCalendarLayout = (CalendarLayout) findViewById(R.id.calendarLayout);
-        mCalendarView.setOnDateSelectedListener(this);
+        mCalendarView.setOnCalendarSelectListener(this);
         mCalendarView.setOnYearChangeListener(this);
-        mCalendarView.setOnMonthChangeListener(this);
+
+        //设置日期拦截事件，仅适用单选模式，当前有效
+        mCalendarView.setOnCalendarInterceptListener(this);
+
         mTextYear.setText(String.valueOf(mCalendarView.getCurYear()));
         mYear = mCalendarView.getCurYear();
         mTextMonthDay.setText(mCalendarView.getCurMonth() + "月" + mCalendarView.getCurDay() + "日");
@@ -100,25 +104,8 @@ public class SingleActivity extends BaseActivity implements
 
     @Override
     protected void initData() {
-        List<Calendar> schemes = new ArrayList<>();
         int year = mCalendarView.getCurYear();
         int month = mCalendarView.getCurMonth();
-
-        schemes.add(getSchemeCalendar(year, month, 3, 0xFF40db25, "假"));
-        schemes.add(getSchemeCalendar(year, month, 6, 0xFFe69138, "事"));
-        schemes.add(getSchemeCalendar(year, month, 9, 0xFFdf1356, "议"));
-        schemes.add(getSchemeCalendar(year, month, 13, 0xFFedc56d, "记"));
-        schemes.add(getSchemeCalendar(year, month, 14, 0xFFedc56d, "记"));
-        schemes.add(getSchemeCalendar(year, month, 15, 0xFFaacc44, "假"));
-        schemes.add(getSchemeCalendar(year, month, 18, 0xFFbc13f0, "记"));
-        schemes.add(getSchemeCalendar(year, month, 25, 0xFF13acf0, "假"));
-
-         /*
-         * 此方法现在弃用，但不影响原来的效果，原因：数据量大时 size()>10000 ，遍历性能太差，超过Android限制的16ms响应，造成卡顿
-         * 现在推荐使用 setSchemeDate(Map<String, Calendar> mSchemeDates)，Map查找性能非常好，经测试，50000以上数据，1ms解决
-         */
-        mCalendarView.setSchemeDate(schemes);
-
 
         Map<String, Calendar> map = new HashMap<>();
         map.put(getSchemeCalendar(year, month, 3, 0xFF40db25, "假").toString(),
@@ -180,32 +167,55 @@ public class SingleActivity extends BaseActivity implements
     }
 
 
-    @SuppressLint("SetTextI18n")
     @Override
-    public void onDateSelected(Calendar calendar, boolean isClick) {
-        mTextLunar.setVisibility(View.VISIBLE);
-        mTextYear.setVisibility(View.VISIBLE);
-        mTextMonthDay.setText(calendar.getMonth() + "月" + calendar.getDay() + "日");
-        mTextYear.setText(String.valueOf(calendar.getYear()));
-        mTextLunar.setText(calendar.getLunar());
-        mYear = calendar.getYear();
-        Log.e("onDateSelected", "  -- " + calendar.getYear() +
-                "  --  " + calendar.getMonth() +
-                "  -- " + calendar.getDay() +
-                "  --  " + isClick);
+    public void onCalendarOutOfRange(Calendar calendar) {
+
     }
 
     @SuppressLint("SetTextI18n")
     @Override
-    public void onMonthChange(int year, int month) {
-        Calendar calendar = mCalendarView.getSelectedCalendar();
+    public void onCalendarSelect(Calendar calendar, boolean isClick) {
         mTextLunar.setVisibility(View.VISIBLE);
         mTextYear.setVisibility(View.VISIBLE);
         mTextMonthDay.setText(calendar.getMonth() + "月" + calendar.getDay() + "日");
         mTextYear.setText(String.valueOf(calendar.getYear()));
         mTextLunar.setText(calendar.getLunar());
         mYear = calendar.getYear();
+//        Log.e("onDateSelected", "  -- " + calendar.getYear() +
+//                "  --  " + calendar.getMonth() +
+//                "  -- " + calendar.getDay() +
+//                "  --  " + isClick);
+        if (!calendar.isAvailable()) {
+            mTextLunar.setText("");
+            mTextYear.setText("");
+            mTextMonthDay.setText("无效日期");
+        }
     }
+
+
+    /**
+     * 屏蔽某些不可点击的日期，可根据自己的业务自行修改
+     * 如 calendar > 2018年1月1日 && calendar <= 2020年12月31日
+     *
+     * @param calendar calendar
+     * @return 是否屏蔽某些不可点击的日期，MonthView和WeekView有类似的API可调用
+     */
+    @Override
+    public boolean onCalendarIntercept(Calendar calendar) {
+        //Log.e("onCalendarIntercept", calendar.toString());
+        int day = calendar.getDay();
+        return day == 1 || day == 3 || day == 6 || day == 11 ||
+                day == 12 || day == 15 || day == 20 || day == 26 ||
+                day == mCalendarView.getCurDay();
+    }
+
+    @Override
+    public void onCalendarInterceptClick(Calendar calendar, boolean isClick) {
+        Toast.makeText(this,
+                calendar.toString() + (isClick ? "拦截不可点击" : "拦截滚动到无效日期"),
+                Toast.LENGTH_SHORT).show();
+    }
+
 
     @Override
     public void onYearChange(int year) {

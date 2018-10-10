@@ -54,6 +54,24 @@ public class YearView extends View {
         measureLine();
     }
 
+    /**
+     * 初始化
+     *
+     * @param delegate delegate
+     */
+    void setup(CalendarViewDelegate delegate) {
+        this.mDelegate = delegate;
+        mSchemePaint.setColor(delegate.getYearViewSchemeTextColor());
+        mSchemePaint.setTextSize(delegate.getYearViewDayTextSize());
+        mPaint.setTextSize(delegate.getYearViewDayTextSize());
+        mPaint.setColor(delegate.getYearViewDayTextColor());
+        Rect rect = new Rect();
+        mPaint.getTextBounds("1", 0, 1, rect);
+        int textHeight = rect.height();
+        mMinHeight = 12 * textHeight;
+    }
+
+
     @Override
     protected void onDraw(Canvas canvas) {
         int width = getWidth();
@@ -113,22 +131,6 @@ public class YearView extends View {
         invalidate();
     }
 
-    /**
-     * 初始化
-     *
-     * @param delegate delegate
-     */
-    void setup(CalendarViewDelegate delegate) {
-        this.mDelegate = delegate;
-        mSchemePaint.setColor(delegate.getYearViewSchemeTextColor());
-        mSchemePaint.setTextSize(delegate.getYearViewDayTextSize());
-        mPaint.setTextSize(delegate.getYearViewDayTextSize());
-        mPaint.setColor(delegate.getYearViewDayTextColor());
-        Rect rect = new Rect();
-        mPaint.getTextBounds("1", 0, 1, rect);
-        int textHeight = rect.height();
-        mMinHeight = 12 * textHeight;
-    }
 
 
     /**
@@ -175,14 +177,6 @@ public class YearView extends View {
      * @return return
      */
     private boolean isScheme(int day) {
-        if (mDelegate.getSchemeType() == CalendarViewDelegate.SCHEME_TYPE_LIST) {
-            if (mDelegate.mSchemeDate == null || mDelegate.mSchemeDate.size() == 0) {
-                return false;
-            }
-            mCalendar.setDay(day);
-            return mDelegate.mSchemeDate.contains(mCalendar);
-        }
-
         if (mDelegate.mSchemeDatesMap == null || mDelegate.mSchemeDatesMap.size() == 0) {
             return false;
         }
